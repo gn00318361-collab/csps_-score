@@ -123,6 +123,8 @@
   .stats-section{margin-top:18px}
   .stats-title{font-size:16px;font-weight:700;color:#333;margin-bottom:12px}
 
+  .submit-time{font-size:12px;color:#27ae60;background:#eafaf1;padding:6px 10px;border-radius:8px;margin-bottom:10px;border-left:3px solid #27ae60}
+
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:8px 22px;border-radius:18px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
   .toast.show{opacity:1}
 </style>
@@ -251,11 +253,11 @@ const MAX=10,GRADES=Object.keys(TEACHERS);
 
 let role=null;
 let aCurGrade=GRADES[0],aCurTeacher=0;
-let aClassCounts={},aData={};
+let aClassCounts={},aData={},aTimestamps={};
 let tGrade=null,tTeacher=null,tClassCount=10,tCurClass=0;
 let tScores=[];
 
-GRADES.forEach(g=>{aClassCounts[g]=10;aData[g]={};TEACHERS[g].forEach(t=>aData[g][t]=null);});
+GRADES.forEach(g=>{aClassCounts[g]=10;aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function setHeader(mode){const h=document.getElementById('mainHeader');h.className='header '+(mode==='admin'?'admin-mode':'teacher-mode');h.querySelector('.sub').textContent=mode==='admin'?'評分統計系統（管理者）':'園遊會攤位評分系統';}
@@ -317,7 +319,7 @@ function tSubmit(){
   const u=tScores.findIndex((_,i)=>!tDone(i));
   if(u>=0){showToast(`${u+1}班 尚有未評項目`);tCurClass=u;tRenderTabs();tRenderCard();return;}
   aClassCounts[tGrade]=tClassCount;if(!aData[tGrade])aData[tGrade]={};
-  aData[tGrade][tTeacher]=JSON.parse(JSON.stringify(tScores));saveLS();
+  aData[tGrade][tTeacher]=JSON.parse(JSON.stringify(tScores));aTimestamps[tGrade][tTeacher]=new Date().toLocaleString('zh-TW');saveLS();
   show('scrTeacherResult');document.getElementById('tResSub').innerHTML=`${tTeacher}｜${tGrade}<br><span style="font-size:12px;color:#e67e22">請將結果傳送給管理者 LINE: wanbadan3310</span>`;tRenderResult();
 }
 function tRenderResult(){
@@ -374,7 +376,8 @@ function aRenderTT(){
 function aTDone(t){const a=aData[aCurGrade][t];return a&&a.every(cls=>CRITERIA.every(c=>cls[c.key]>0));}
 function aRenderInput(){
   const teacher=TEACHERS[aCurGrade][aCurTeacher],cnt=aClassCounts[aCurGrade],scores=aData[aCurGrade][teacher];
-  let h=`<div class="score-card"><h3>${teacher}的評分</h3><table class="input-table"><tr><th>班級</th>`;
+  const ts=aTimestamps[aCurGrade]&&aTimestamps[aCurGrade][teacher];
+  let h=`<div class="score-card"><h3>${teacher}的評分</h3>${ts?`<div class="submit-time">📌 提交時間：${ts}</div>`:''}<table class="input-table"><tr><th>班級</th>`;
   CRITERIA.forEach(c=>h+=`<th>${c.name}</th>`);h+=`<th>總分</th></tr>`;
   for(let i=0;i<cnt;i++){
     const s=scores[i],total=CRITERIA.reduce((sum,c)=>sum+(s[c.key]||0),0);
@@ -421,8 +424,8 @@ function aExportAll(){
 }
 
 // ===== localStorage =====
-function saveLS(){try{localStorage.setItem('pd_data',JSON.stringify(aData));localStorage.setItem('pd_counts',JSON.stringify(aClassCounts));}catch(e){}}
-function loadLS(){try{const d=localStorage.getItem('pd_data'),c=localStorage.getItem('pd_counts');if(d){const p=JSON.parse(d);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aData[g][t]=p[g][t];});});}if(c){const p=JSON.parse(c);GRADES.forEach(g=>{if(p[g])aClassCounts[g]=p[g];});}}catch(e){}}
+function saveLS(){try{localStorage.setItem('pd_data',JSON.stringify(aData));localStorage.setItem('pd_counts',JSON.stringify(aClassCounts));localStorage.setItem('pd_timestamps',JSON.stringify(aTimestamps));}catch(e){}}
+function loadLS(){try{const d=localStorage.getItem('pd_data'),c=localStorage.getItem('pd_counts'),ts=localStorage.getItem('pd_timestamps');if(d){const p=JSON.parse(d);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aData[g][t]=p[g][t];});});}if(c){const p=JSON.parse(c);GRADES.forEach(g=>{if(p[g])aClassCounts[g]=p[g];});}if(ts){const p=JSON.parse(ts);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aTimestamps[g][t]=p[g][t];});});}}catch(e){}}
 
 // ===== 工具 =====
 function doCopy(text){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(()=>showToast('已複製！')).catch(()=>fbCopy(text));else fbCopy(text);}
