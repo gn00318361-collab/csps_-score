@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>113學年度親職教育日 園遊會評分</title>
+<title>114學年度親職教育日 園遊會評分</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;background:#f0f2f5;color:#333;min-height:100vh;padding-bottom:90px}
@@ -130,7 +130,7 @@
 <body>
 
 <div class="header teacher-mode" id="mainHeader">
-  <h1>113學年度親職教育日</h1>
+  <h1>114學年度親職教育日</h1>
   <div class="sub">園遊會攤位評分系統</div>
 </div>
 
@@ -235,7 +235,7 @@
 
 <script>
 const TEACHERS={
-  "一年級":["建能主任","玉芳老師","媞嫣老師"],
+  "一年級":["建能主任","玉芳老師","婕嫣老師"],
   "二年級":["繼洋老師","宣勻老師","政輝老師"],
   "三年級":["玉雪主任","詩博老師","秀雯老師","育霖老師"],
   "四年級":["偉甄老師","益誌老師","嘉琪老師","人鉉老師"],
@@ -332,14 +332,14 @@ function tGetText(){
   const d=tScores.map((s,i)=>({cls:i+1,s,total:CRITERIA.reduce((sum,c)=>sum+s[c.key],0)}));
   const sorted=[...d].sort((a,b)=>b.total-a.total);let r=1;sorted.forEach((it,i)=>{if(i>0&&it.total<sorted[i-1].total)r=i+1;it.rank=r;});
   sorted.forEach(x=>d[x.cls-1].rank=x.rank);
-  let t=`📋 113學年度親職教育日\n園遊會攤位評分結果\n━━━━━━━━━━\n評分老師：${tTeacher}\n評分年級：${tGrade}\n━━━━━━━━━━\n班級 | `;
+  let t=`📋 114學年度親職教育日\n園遊會攤位評分結果\n━━━━━━━━━━\n評分老師：${tTeacher}\n評分年級：${tGrade}\n━━━━━━━━━━\n班級 | `;
   CRITERIA.forEach(c=>t+=`${c.name} | `);t+=`總分 | 名次\n──────────\n`;
   d.forEach(x=>{t+=`${x.cls}班 | `;CRITERIA.forEach(c=>t+=`${x.s[c.key]} | `);t+=`${x.total} | 第${x.rank}名\n`;});
   t+=`━━━━━━━━━━\n`;const now=new Date(),p=n=>String(n).padStart(2,'0');
   t+=`評分時間：${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;return t;
 }
 function tCopyRes(){doCopy(tGetText());}
-function tShareLine(){window.open('https://line.me/R/share?text='+encodeURIComponent(tGetText()),'_blank');}
+function shareLine(text){const t=encodeURIComponent(text);const isM=/iPhone|iPad|Android/i.test(navigator.userAgent);if(isM){window.location.href='line://msg/text/'+t;}else{window.open('https://social-plugins.line.me/lineit/share?url=&text='+t,'_blank');}}
 
 // ===== 管理者 =====
 function initAdmin(){
@@ -407,15 +407,15 @@ function aGetText(grade){
   const res=[];for(let i=0;i<cnt;i++){const tt=[];ts.forEach(t=>{const s=aData[g][t][i];tt.push(CRITERIA.reduce((sum,c)=>sum+(s[c.key]||0),0));});res.push({cls:i+1,tt,avg:tt.reduce((a,b)=>a+b,0)/ts.length});}
   const sorted=[...res].sort((a,b)=>b.avg-a.avg);let rk=1;sorted.forEach((it,i)=>{if(i>0&&it.avg<sorted[i-1].avg)rk=i+1;it.rank=rk;});
   sorted.forEach(s=>res[s.cls-1].rank=s.rank);
-  let t=`📊 113學年度親職教育日\n${g} 評分統計\n━━━━━━━━━━\n班級 | `;ts.forEach(tc=>t+=`${tc.replace('老師','').replace('主任','')} | `);t+=`平均 | 名次\n──────────\n`;
+  let t=`📊 114學年度親職教育日\n${g} 評分統計\n━━━━━━━━━━\n班級 | `;ts.forEach(tc=>t+=`${tc.replace('老師','').replace('主任','')} | `);t+=`平均 | 名次\n──────────\n`;
   res.forEach(r=>{t+=`${r.cls}班 | `;r.tt.forEach(v=>t+=`${v} | `);t+=`${r.avg.toFixed(1)} | 第${r.rank}名\n`;});
   t+=`━━━━━━━━━━\n`;const now=new Date(),p=n=>String(n).padStart(2,'0');
   t+=`統計時間：${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}\n`;return t;
 }
 function aCopyStats(){doCopy(aGetText());}
-function aShareLine(){window.open('https://line.me/R/share?text='+encodeURIComponent(aGetText()),'_blank');}
+function shareLine(text){const t=encodeURIComponent(text);const isM=/iPhone|iPad|Android/i.test(navigator.userAgent);if(isM){window.location.href='line://msg/text/'+t;}else{window.open('https://social-plugins.line.me/lineit/share?url=&text='+t,'_blank');}}
 function aExportAll(){
-  let all=`📊 113學年度親職教育日 全年級統計\n\n`;
+  let all=`📊 114學年度親職教育日 全年級統計\n\n`;
   GRADES.forEach(g=>{let has=false;TEACHERS[g].forEach(t=>{if(aData[g][t])aData[g][t].forEach(cls=>{if(CRITERIA.some(c=>cls[c.key]>0))has=true;});});if(has)all+=aGetText(g)+'\n';});
   doCopy(all);
 }
