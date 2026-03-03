@@ -261,7 +261,7 @@ GRADES.forEach(g=>{aClassCounts[g]=10;aData[g]={};aTimestamps[g]={};TEACHERS[g].
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function setHeader(mode){const h=document.getElementById('mainHeader');h.className='header '+(mode==='admin'?'admin-mode':'teacher-mode');h.querySelector('.sub').textContent=mode==='admin'?'評分統計系統（管理者）':'園遊會攤位評分系統';}
-function pickRole(r){role=r;if(r==='teacher'){setHeader('teacher');initTeacherLogin();show('scrTeacherLogin');}else{setHeader('admin');initAdmin();show('scrAdmin');}}
+function pickRole(r){role=r;if(r==='teacher'){setHeader('teacher');initTeacherLogin();show('scrTeacherLogin');}else{var pw=prompt('請輸入管理者密碼：');if(pw!=='csps2026'){alert('密碼錯誤！');return;}setHeader('admin');initAdmin();show('scrAdmin');}}
 function goHome(){setHeader('teacher');show('scrRole');}
 
 // ===== 老師登入 =====
