@@ -165,12 +165,7 @@
       <span class="field-label">選擇您的姓名</span>
       <div id="tTeacherList"></div>
     </div>
-    <div class="count-row" id="tCountRow" style="display:none">
-      <label>班級數：</label>
-      <button class="cnt-btn" onclick="tAdjCount(-1)">−</button>
-      <span class="cnt-val" id="tCntVal">10</span>
-      <button class="cnt-btn" onclick="tAdjCount(1)">+</button>
-    </div>
+    <div id="tCountRow" style="display:none"></div>
     <button class="big-btn blue" id="tStartBtn" disabled onclick="tStartScoring()">開始評分</button>
   </div>
 
@@ -207,12 +202,6 @@
   <!-- 管理者 -->
   <div class="screen" id="scrAdmin">
     <div class="admin-grade-bar" id="aGradeBar"></div>
-    <div class="count-row">
-      <label>班級數：</label>
-      <button class="cnt-btn" style="border-color:#e67e22;color:#e67e22" onclick="aAdjCount(-1)">−</button>
-      <span class="cnt-val" id="aCntVal" style="color:#e67e22">10</span>
-      <button class="cnt-btn" style="border-color:#e67e22;color:#e67e22" onclick="aAdjCount(1)">+</button>
-    </div>
     <div class="info-bar">切換各評分老師分頁輸入分數，系統自動計算平均與名次。<br>老師提交的評分也會自動出現在這裡。</div>
     <div class="teacher-tabs" id="aTeacherTabs"></div>
     <div id="aInputArea"></div>
@@ -257,8 +246,8 @@ let aClassCounts={},aData={},aTimestamps={};
 let tGrade=null,tTeacher=null,tClassCount=10,tCurClass=0;
 let tScores=[];
 
-const DEFAULT_COUNTS={"一年級":8,"二年級":8,"三年級":9,"四年級":9,"五年級":10,"六年級":10};
-GRADES.forEach(g=>{aClassCounts[g]=DEFAULT_COUNTS[g]||10;aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
+const FIXED_COUNTS={"一年級":8,"二年級":8,"三年級":9,"四年級":9,"五年級":10,"六年級":10};
+GRADES.forEach(g=>{aClassCounts[g]=FIXED_COUNTS[g];aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function setHeader(mode){const h=document.getElementById('mainHeader');h.className='header '+(mode==='admin'?'admin-mode':'teacher-mode');h.querySelector('.sub').textContent=mode==='admin'?'評分統計系統（管理者）':'園遊會攤位評分系統';}
@@ -280,7 +269,7 @@ function tPickGrade(g){
   document.getElementById('tTeacherWrap').style.display='block';
   const list=document.getElementById('tTeacherList');list.innerHTML='';
   TEACHERS[g].forEach(t=>{const b=document.createElement('button');b.className='t-btn';b.textContent=t;b.onclick=()=>{tTeacher=t;document.querySelectorAll('#tTeacherList .t-btn').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('tStartBtn').disabled=false;};list.appendChild(b);});
-  document.getElementById('tCountRow').style.display='flex';tClassCount=aClassCounts[g]||10;document.getElementById('tCntVal').textContent=tClassCount;
+  tClassCount=FIXED_COUNTS[g];
 }
 function tAdjCount(d){tClassCount=Math.max(1,Math.min(15,tClassCount+d));document.getElementById('tCntVal').textContent=tClassCount;}
 
