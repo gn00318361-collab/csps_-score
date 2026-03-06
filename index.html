@@ -257,7 +257,8 @@ let aClassCounts={},aData={},aTimestamps={};
 let tGrade=null,tTeacher=null,tClassCount=10,tCurClass=0;
 let tScores=[];
 
-GRADES.forEach(g=>{aClassCounts[g]=10;aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
+const DEFAULT_COUNTS={"一年級":8,"二年級":8,"三年級":9,"四年級":9,"五年級":10,"六年級":10};
+GRADES.forEach(g=>{aClassCounts[g]=DEFAULT_COUNTS[g]||10;aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function setHeader(mode){const h=document.getElementById('mainHeader');h.className='header '+(mode==='admin'?'admin-mode':'teacher-mode');h.querySelector('.sub').textContent=mode==='admin'?'評分統計系統（管理者）':'園遊會攤位評分系統';}
