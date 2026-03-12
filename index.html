@@ -125,6 +125,14 @@
 
   .submit-time{font-size:12px;color:#27ae60;background:#eafaf1;padding:6px 10px;border-radius:8px;margin-bottom:10px;border-left:3px solid #27ae60}
 
+  .note-wrap{margin-top:10px;padding-top:10px;border-top:1px dashed #eee}
+  .note-label{font-size:12px;font-weight:700;color:#e74c3c;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+  .note-input{width:100%;padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:none;outline:none;transition:border-color .15s;min-height:38px}
+  .note-input:focus{border-color:#e74c3c}
+  .note-input.has-text{background:#fef2f2;border-color:#e74c3c}
+  .note-badge{display:inline-block;font-size:11px;background:#fef2f2;color:#e74c3c;padding:2px 8px;border-radius:10px;margin-left:4px;font-weight:600}
+  .note-display{font-size:12px;color:#e74c3c;background:#fef2f2;padding:6px 10px;border-radius:8px;border-left:3px solid #e74c3c;margin-top:4px}
+
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:8px 22px;border-radius:18px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
   .toast.show{opacity:1}
 </style>
@@ -242,12 +250,12 @@ const MAX=10,GRADES=Object.keys(TEACHERS);
 
 let role=null;
 let aCurGrade=GRADES[0],aCurTeacher=0;
-let aClassCounts={},aData={},aTimestamps={};
+let aClassCounts={},aData={},aTimestamps={},aNotes={};
 let tGrade=null,tTeacher=null,tClassCount=10,tCurClass=0;
-let tScores=[];
+let tScores=[],tNotes=[];
 
 const FIXED_COUNTS={"一年級":8,"二年級":8,"三年級":9,"四年級":9,"五年級":10,"六年級":10};
-GRADES.forEach(g=>{aClassCounts[g]=FIXED_COUNTS[g];aData[g]={};aTimestamps[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;});});
+GRADES.forEach(g=>{aClassCounts[g]=FIXED_COUNTS[g];aData[g]={};aTimestamps[g]={};aNotes[g]={};TEACHERS[g].forEach(t=>{aData[g][t]=null;aTimestamps[g][t]=null;aNotes[g][t]=null;});});
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function setHeader(mode){const h=document.getElementById('mainHeader');h.className='header '+(mode==='admin'?'admin-mode':'teacher-mode');h.querySelector('.sub').textContent=mode==='admin'?'評分統計系統（管理者）':'園遊會攤位評分系統';}
@@ -276,7 +284,7 @@ function tAdjCount(d){tClassCount=Math.max(1,Math.min(15,tClassCount+d));documen
 // ===== 老師評分 =====
 function tStartScoring(){
   if(!tGrade||!tTeacher)return;
-  tScores=[];for(let i=0;i<tClassCount;i++){const o={};CRITERIA.forEach(c=>o[c.key]=0);tScores.push(o);}
+  tScores=[];tNotes=[];for(let i=0;i<tClassCount;i++){const o={};CRITERIA.forEach(c=>o[c.key]=0);tScores.push(o);tNotes.push('');}
   tCurClass=0;show('scrTeacherScore');
   document.getElementById('tInfoBar').innerHTML=`<strong>${tTeacher}</strong>｜${tGrade}（${tClassCount} 班）<br>點選數字即可給分，評完自動跳下一班`;
   tRenderTabs();tRenderCard();
@@ -295,13 +303,15 @@ function tRenderCard(){
   let h=`<div class="score-card"><h3>${tGrade} ${tCurClass+1}班</h3>`;
   CRITERIA.forEach(c=>{h+=`<div class="row"><span class="row-label">${c.name}</span><div class="star-group">`;for(let n=1;n<=MAX;n++)h+=`<button class="star${s[c.key]>=n?' on':''}" onclick="tSet('${c.key}',${n})">${n}</button>`;h+=`</div><span class="row-score">${s[c.key]||'-'}</span></div>`;});
   const total=CRITERIA.reduce((sum,c)=>sum+s[c.key],0);
-  h+=`<div class="total-row"><span class="total-label">總分</span><span class="total-val">${total||'-'}</span></div></div>`;
+  h+=`<div class="total-row"><span class="total-label">總分</span><span class="total-val">${total||'-'}</span></div>`;
+  h+=`<div class="note-wrap"><div class="note-label">⚠️ 違規備註</div><textarea class="note-input${tNotes[tCurClass]?' has-text':''}" placeholder="如有違規事項請在此備註（非必填）" oninput="tSetNote(this)">${tNotes[tCurClass]||''}</textarea></div></div>`;
   document.getElementById('tScoreArea').innerHTML=h;
 }
 function tSet(key,val){
   tScores[tCurClass][key]=val;tRenderCard();tRenderTabs();
   if(tDone(tCurClass)&&tCurClass<tClassCount-1){setTimeout(()=>{for(let i=tCurClass+1;i<tClassCount;i++){if(!tDone(i)){tCurClass=i;tRenderTabs();tRenderCard();showToast(`跳到 ${i+1}班`);return;}}},350);}
 }
+function tSetNote(el){tNotes[tCurClass]=el.value.trim();el.classList.toggle('has-text',!!el.value.trim());}
 function tGoBack(){if(tScores.some((_,i)=>tDone(i))&&!confirm('返回將清除評分，確定嗎？'))return;show('scrTeacherLogin');}
 
 // ===== 老師提交 =====
@@ -309,15 +319,15 @@ function tSubmit(){
   const u=tScores.findIndex((_,i)=>!tDone(i));
   if(u>=0){showToast(`${u+1}班 尚有未評項目`);tCurClass=u;tRenderTabs();tRenderCard();return;}
   aClassCounts[tGrade]=tClassCount;if(!aData[tGrade])aData[tGrade]={};
-  aData[tGrade][tTeacher]=JSON.parse(JSON.stringify(tScores));aTimestamps[tGrade][tTeacher]=new Date().toLocaleString('zh-TW');saveLS();
+  aData[tGrade][tTeacher]=JSON.parse(JSON.stringify(tScores));aNotes[tGrade][tTeacher]=[...tNotes];aTimestamps[tGrade][tTeacher]=new Date().toLocaleString('zh-TW');saveLS();
   show('scrTeacherResult');document.getElementById('tResSub').innerHTML=`${tTeacher}｜${tGrade}<br><span style="font-size:12px;color:#e67e22">請將結果傳送給管理者 LINE: wanbadan3310</span>`;tRenderResult();
 }
 function tRenderResult(){
   const tots=tScores.map((s,i)=>({cls:i+1,s,total:CRITERIA.reduce((sum,c)=>sum+s[c.key],0)}));
   tots.sort((a,b)=>b.total-a.total);let r=1;tots.forEach((it,i)=>{if(i>0&&it.total<tots[i-1].total)r=i+1;it.rank=r;});
   const d=[...tots].sort((a,b)=>a.cls-b.cls);
-  let h=`<tr><th>班級</th>`;CRITERIA.forEach(c=>h+=`<th>${c.name}</th>`);h+=`<th>總分</th><th>名次</th></tr>`;
-  d.forEach(x=>{const rc=x.rank<=3?` rank-${x.rank}`:'';h+=`<tr><td><strong>${x.cls}班</strong></td>`;CRITERIA.forEach(c=>h+=`<td>${x.s[c.key]}</td>`);h+=`<td class="highlight">${x.total}</td><td class="${rc}">${x.rank}</td></tr>`;});
+  let h=`<tr><th>班級</th>`;CRITERIA.forEach(c=>h+=`<th>${c.name}</th>`);h+=`<th>總分</th><th>名次</th><th>備註</th></tr>`;
+  d.forEach(x=>{const rc=x.rank<=3?` rank-${x.rank}`:'';const note=tNotes[x.cls-1]||'';h+=`<tr><td><strong>${x.cls}班</strong></td>`;CRITERIA.forEach(c=>h+=`<td>${x.s[c.key]}</td>`);h+=`<td class="highlight">${x.total}</td><td class="${rc}">${x.rank}</td><td style="font-size:11px;color:#e74c3c;max-width:80px;white-space:normal">${note||'-'}</td></tr>`;});
   document.getElementById('tResTable').innerHTML=h;
 }
 function tGetText(){
@@ -327,6 +337,7 @@ function tGetText(){
   let t=`📋 114學年度親職教育日\n園遊會攤位評分結果\n━━━━━━━━━━\n評分老師：${tTeacher}\n評分年級：${tGrade}\n━━━━━━━━━━\n班級 | `;
   CRITERIA.forEach(c=>t+=`${c.name} | `);t+=`總分 | 名次\n──────────\n`;
   d.forEach(x=>{t+=`${x.cls}班 | `;CRITERIA.forEach(c=>t+=`${x.s[c.key]} | `);t+=`${x.total} | 第${x.rank}名\n`;});
+  const hasNotes=tNotes.some(n=>n);if(hasNotes){t+=`━━━━━━━━━━\n⚠️ 違規備註：\n`;tNotes.forEach((n,i)=>{if(n)t+=`  ${i+1}班：${n}\n`;});}
   t+=`━━━━━━━━━━\n`;const now=new Date(),p=n=>String(n).padStart(2,'0');
   t+=`評分時間：${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;return t;
 }
@@ -368,15 +379,19 @@ function aRenderInput(){
   const teacher=TEACHERS[aCurGrade][aCurTeacher],cnt=aClassCounts[aCurGrade],scores=aData[aCurGrade][teacher];
   const ts=aTimestamps[aCurGrade]&&aTimestamps[aCurGrade][teacher];
   let h=`<div class="score-card"><h3>${teacher}的評分</h3>${ts?`<div class="submit-time">📌 提交時間：${ts}</div>`:''}<table class="input-table"><tr><th>班級</th>`;
-  CRITERIA.forEach(c=>h+=`<th>${c.name}</th>`);h+=`<th>總分</th></tr>`;
+  CRITERIA.forEach(c=>h+=`<th>${c.name}</th>`);h+=`<th>總分</th><th>備註</th></tr>`;
+  const notes=aNotes[aCurGrade]&&aNotes[aCurGrade][teacher]?aNotes[aCurGrade][teacher]:[];
   for(let i=0;i<cnt;i++){
     const s=scores[i],total=CRITERIA.reduce((sum,c)=>sum+(s[c.key]||0),0);
+    const note=notes[i]||'';
     h+=`<tr><td class="cls-label">${i+1}班</td>`;
     CRITERIA.forEach(c=>{const v=s[c.key]||'';h+=`<td><input type="number" class="score-input${v?' filled':''}" min="0" max="${MAX}" value="${v||''}" inputmode="numeric" pattern="[0-9]*" onfocus="this.select()" oninput="aSet('${teacher}',${i},'${c.key}',this)" onchange="aSet('${teacher}',${i},'${c.key}',this)"></td>`;});
-    h+=`<td class="row-total-admin">${total||'-'}</td></tr>`;
+    h+=`<td class="row-total-admin">${total||'-'}</td>`;
+    h+=`<td><input type="text" class="note-input" style="width:70px;min-height:auto;padding:4px 6px;font-size:11px" value="${note.replace(/"/g,'&quot;')}" placeholder="-" oninput="aSetNote('${teacher}',${i},this)"></td></tr>`;
   }
   h+=`</table></div>`;document.getElementById('aInputArea').innerHTML=h;
 }
+function aSetNote(teacher,ci,el){if(!aNotes[aCurGrade])aNotes[aCurGrade]={};if(!aNotes[aCurGrade][teacher])aNotes[aCurGrade][teacher]=[];while(aNotes[aCurGrade][teacher].length<=ci)aNotes[aCurGrade][teacher].push('');aNotes[aCurGrade][teacher][ci]=el.value.trim();el.classList.toggle('has-text',!!el.value.trim());saveLS();}
 function aSet(teacher,ci,key,el){
   let v=parseInt(el.value);if(isNaN(v)||v<0)v=0;if(v>MAX){v=MAX;el.value=v;}
   aData[aCurGrade][teacher][ci][key]=v;el.classList.toggle('filled',v>0);
@@ -391,8 +406,10 @@ function aRenderStats(){
   for(let i=0;i<cnt;i++){const tt=[];ts.forEach(t=>{const s=aData[g][t][i];tt.push(CRITERIA.reduce((sum,c)=>sum+(s[c.key]||0),0));});const avg=tt.reduce((a,b)=>a+b,0)/ts.length;res.push({cls:i+1,tt,avg});}
   const sorted=[...res].sort((a,b)=>b.avg-a.avg);let rk=1;sorted.forEach((it,i)=>{if(i>0&&it.avg<sorted[i-1].avg)rk=i+1;it.rank=rk;});
   sorted.forEach(s=>res[s.cls-1].rank=s.rank);
-  let h=`<tr><th>班級</th>`;ts.forEach(t=>h+=`<th>${t.replace('老師','').replace('主任','')}</th>`);h+=`<th>平均</th><th>名次</th></tr>`;
-  res.forEach(r=>{const rc=r.rank<=3?` rank-${r.rank}`:'';h+=`<tr><td><strong>${r.cls}班</strong></td>`;r.tt.forEach(t=>h+=`<td>${t||'-'}</td>`);h+=`<td class="highlight">${r.avg.toFixed(1)}</td><td class="${rc}">${r.rank}</td></tr>`;});
+  let h=`<tr><th>班級</th>`;ts.forEach(t=>h+=`<th>${t.replace('老師','').replace('主任','')}</th>`);h+=`<th>平均</th><th>名次</th><th>備註</th></tr>`;
+  res.forEach(r=>{const rc=r.rank<=3?` rank-${r.rank}`:'';h+=`<tr><td><strong>${r.cls}班</strong></td>`;r.tt.forEach(t=>h+=`<td>${t||'-'}</td>`);h+=`<td class="highlight">${r.avg.toFixed(1)}</td><td class="${rc}">${r.rank}</td>`;
+    const allNotes=[];ts.forEach(t=>{const n=aNotes[g]&&aNotes[g][t]&&aNotes[g][t][r.cls-1];if(n)allNotes.push(n);});
+    h+=`<td style="font-size:11px;color:#e74c3c;max-width:80px;white-space:normal">${allNotes.length?allNotes.join('；'):'-'}</td></tr>`;});
   document.getElementById('aStatsTable').innerHTML=h;
 }
 function aGetText(grade){
@@ -402,6 +419,8 @@ function aGetText(grade){
   sorted.forEach(s=>res[s.cls-1].rank=s.rank);
   let t=`📊 114學年度親職教育日\n${g} 評分統計\n━━━━━━━━━━\n班級 | `;ts.forEach(tc=>t+=`${tc.replace('老師','').replace('主任','')} | `);t+=`平均 | 名次\n──────────\n`;
   res.forEach(r=>{t+=`${r.cls}班 | `;r.tt.forEach(v=>t+=`${v} | `);t+=`${r.avg.toFixed(1)} | 第${r.rank}名\n`;});
+  const allNotes=[];for(let i=0;i<cnt;i++){const cn=[];ts.forEach(tc=>{const n=aNotes[g]&&aNotes[g][tc]&&aNotes[g][tc][i];if(n)cn.push(n);});if(cn.length)allNotes.push(`  ${i+1}班：${cn.join('；')}`);}
+  if(allNotes.length){t+=`━━━━━━━━━━\n⚠️ 違規備註：\n${allNotes.join('\n')}\n`;}
   t+=`━━━━━━━━━━\n`;const now=new Date(),p=n=>String(n).padStart(2,'0');
   t+=`統計時間：${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}\n`;return t;
 }
@@ -414,8 +433,8 @@ function aExportAll(){
 }
 
 // ===== localStorage =====
-function saveLS(){try{localStorage.setItem('pd_data',JSON.stringify(aData));localStorage.setItem('pd_counts',JSON.stringify(aClassCounts));localStorage.setItem('pd_timestamps',JSON.stringify(aTimestamps));}catch(e){}}
-function loadLS(){try{const d=localStorage.getItem('pd_data'),c=localStorage.getItem('pd_counts'),ts=localStorage.getItem('pd_timestamps');if(d){const p=JSON.parse(d);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aData[g][t]=p[g][t];});});}if(c){const p=JSON.parse(c);GRADES.forEach(g=>{if(p[g])aClassCounts[g]=p[g];});}if(ts){const p=JSON.parse(ts);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aTimestamps[g][t]=p[g][t];});});}}catch(e){}}
+function saveLS(){try{localStorage.setItem('pd_data',JSON.stringify(aData));localStorage.setItem('pd_counts',JSON.stringify(aClassCounts));localStorage.setItem('pd_timestamps',JSON.stringify(aTimestamps));localStorage.setItem('pd_notes',JSON.stringify(aNotes));}catch(e){}}
+function loadLS(){try{const d=localStorage.getItem('pd_data'),c=localStorage.getItem('pd_counts'),ts=localStorage.getItem('pd_timestamps'),nt=localStorage.getItem('pd_notes');if(d){const p=JSON.parse(d);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aData[g][t]=p[g][t];});});}if(c){const p=JSON.parse(c);GRADES.forEach(g=>{if(p[g])aClassCounts[g]=p[g];});}if(ts){const p=JSON.parse(ts);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aTimestamps[g][t]=p[g][t];});});}if(nt){const p=JSON.parse(nt);GRADES.forEach(g=>{if(p[g])TEACHERS[g].forEach(t=>{if(p[g][t])aNotes[g][t]=p[g][t];});});}}catch(e){}}
 
 // ===== 工具 =====
 function doCopy(text){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(()=>showToast('已複製！')).catch(()=>fbCopy(text));else fbCopy(text);}
