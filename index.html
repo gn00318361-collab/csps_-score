@@ -342,6 +342,8 @@ function tGetText(){
   t+=`評分時間：${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;return t;
 }
 function tCopyRes(){doCopy(tGetText());}
+function tShareLine(){shareLine(tGetText());}
+function aShareLine(){shareLine(aGetText());}
 function shareLine(text){const t=encodeURIComponent(text);const isM=/iPhone|iPad|Android/i.test(navigator.userAgent);if(isM){window.location.href='line://msg/text/'+t;}else{window.open('https://social-plugins.line.me/lineit/share?url=&text='+t,'_blank');}}
 
 // ===== 管理者 =====
