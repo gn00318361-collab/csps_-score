@@ -353,7 +353,7 @@ function initAdmin(){
 }
 function aRefresh(){
   document.querySelectorAll('.ag-btn').forEach(b=>b.classList.toggle('on',b.textContent===aCurGrade));
-  document.getElementById('aCntVal').textContent=aClassCounts[aCurGrade];
+  const cntEl=document.getElementById('aCntVal');if(cntEl)cntEl.textContent=aClassCounts[aCurGrade];
   aEnsure();aRenderTT();aRenderInput();aRenderStats();
 }
 function aEnsure(){
