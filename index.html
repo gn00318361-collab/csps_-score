@@ -210,10 +210,7 @@
   <!-- 管理者 -->
   <div class="screen" id="scrAdmin">
     <div class="admin-grade-bar" id="aGradeBar"></div>
-    <div class="info-bar">切換各評分老師分頁輸入分數，系統自動計算平均與名次。<br>老師提交的評分會自動同步到雲端。</div>
     <button class="act-btn copy" style="margin-bottom:12px" onclick="syncCloud()">🔄 從雲端同步最新資料</button>
-    <div class="teacher-tabs" id="aTeacherTabs"></div>
-    <div id="aInputArea"></div>
 
     <div class="stats-section" id="aStatsSection" style="display:none">
       <div class="stats-title">📊 統計結果</div>
@@ -224,8 +221,19 @@
         <button class="act-btn orange" onclick="aCopyStats()">📋 複製統計結果</button>
         <button class="act-btn line" onclick="aShareLine()">💬 LINE 傳送</button>
         <button class="act-btn copy" onclick="aExportAll()">📊 匯出全年級</button>
-        <button class="act-btn reset" onclick="goHome()">🏠 回首頁</button>
       </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="act-btn" style="background:#f0f0f0;color:#666" onclick="toggleDetail()">📋 查看 / 隱藏評分明細</button>
+    </div>
+    <div id="aDetailSection" style="display:none">
+      <div class="teacher-tabs" id="aTeacherTabs" style="margin-top:12px"></div>
+      <div id="aInputArea"></div>
+    </div>
+
+    <div class="act-btns" style="margin-top:14px">
+      <button class="act-btn reset" onclick="goHome()">🏠 回首頁</button>
     </div>
   </div>
 
@@ -270,6 +278,11 @@ async function cloudLoad() {
       showToast('已從雲端載入資料');
     }
   } catch (e) { console.log('雲端載入失敗', e); }
+}
+
+function toggleDetail(){
+  const sec=document.getElementById('aDetailSection');
+  sec.style.display=sec.style.display==='none'?'block':'none';
 }
 
 async function syncCloud(){
@@ -331,7 +344,7 @@ function tStartScoring(){
   if(!tGrade||!tTeacher)return;
   tScores=[];tNotes=[];for(let i=0;i<tClassCount;i++){const o={};CRITERIA.forEach(c=>o[c.key]=0);tScores.push(o);tNotes.push('');}
   tCurClass=0;show('scrTeacherScore');
-  document.getElementById('tInfoBar').innerHTML=`<strong>${tTeacher}</strong>｜${tGrade}（${tClassCount} 班）<br>點選數字即可給分，評完自動跳下一班`;
+  document.getElementById('tInfoBar').innerHTML=`<strong>${tTeacher}</strong>｜${tGrade}（${tClassCount} 班）<br>點選數字即可給分，如需備註請填寫後按「下一班」`;
   tRenderTabs();tRenderCard();
 }
 function tRenderTabs(){
@@ -349,12 +362,19 @@ function tRenderCard(){
   CRITERIA.forEach(c=>{h+=`<div class="row"><span class="row-label">${c.name}</span><div class="star-group">`;for(let n=1;n<=MAX;n++)h+=`<button class="star${s[c.key]>=n?' on':''}" onclick="tSet('${c.key}',${n})">${n}</button>`;h+=`</div><span class="row-score">${s[c.key]||'-'}</span></div>`;});
   const total=CRITERIA.reduce((sum,c)=>sum+s[c.key],0);
   h+=`<div class="total-row"><span class="total-label">總分</span><span class="total-val">${total||'-'}</span></div>`;
-  h+=`<div class="note-wrap"><div class="note-label">⚠️ 違規備註</div><textarea class="note-input${tNotes[tCurClass]?' has-text':''}" placeholder="如有違規事項請在此備註（非必填）" oninput="tSetNote(this)">${tNotes[tCurClass]||''}</textarea></div></div>`;
+  h+=`<div class="note-wrap"><div class="note-label">⚠️ 違規備註</div><textarea class="note-input${tNotes[tCurClass]?' has-text':''}" placeholder="如有違規事項請在此備註（非必填）" oninput="tSetNote(this)">${tNotes[tCurClass]||''}</textarea></div>`;
+  if(tDone(tCurClass)&&tCurClass<tClassCount-1){
+    h+=`<button onclick="tNextClass()" style="width:100%;padding:14px;margin-top:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#4a90d9,#357abd);color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(74,144,217,0.3)">下一班 →</button>`;
+  }
+  h+=`</div>`;
   document.getElementById('tScoreArea').innerHTML=h;
 }
 function tSet(key,val){
   tScores[tCurClass][key]=val;tRenderCard();tRenderTabs();
-  if(tDone(tCurClass)&&tCurClass<tClassCount-1){setTimeout(()=>{for(let i=tCurClass+1;i<tClassCount;i++){if(!tDone(i)){tCurClass=i;tRenderTabs();tRenderCard();showToast(`跳到 ${i+1}班`);return;}}},350);}
+}
+function tNextClass(){
+  for(let i=tCurClass+1;i<tClassCount;i++){if(!tDone(i)){tCurClass=i;tRenderTabs();tRenderCard();showToast(`跳到 ${i+1}班`);return;}}
+  tCurClass=tCurClass+1;if(tCurClass>=tClassCount)tCurClass=tClassCount-1;tRenderTabs();tRenderCard();
 }
 function tSetNote(el){tNotes[tCurClass]=el.value.trim();el.classList.toggle('has-text',!!el.value.trim());}
 function tGoBack(){if(tScores.some((_,i)=>tDone(i))&&!confirm('返回將清除評分，確定嗎？'))return;show('scrTeacherLogin');}
