@@ -210,7 +210,8 @@
   <!-- 管理者 -->
   <div class="screen" id="scrAdmin">
     <div class="admin-grade-bar" id="aGradeBar"></div>
-    <div class="info-bar">切換各評分老師分頁輸入分數，系統自動計算平均與名次。<br>老師提交的評分也會自動出現在這裡。</div>
+    <div class="info-bar">切換各評分老師分頁輸入分數，系統自動計算平均與名次。<br>老師提交的評分會自動同步到雲端。</div>
+    <button class="act-btn copy" style="margin-bottom:12px" onclick="syncCloud()">🔄 從雲端同步最新資料</button>
     <div class="teacher-tabs" id="aTeacherTabs"></div>
     <div id="aInputArea"></div>
 
@@ -233,6 +234,50 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===== Google Sheets 雲端同步 =====
+// 請將下方 URL 替換為你的 Google Apps Script 部署網址
+const API_URL = 'https://script.google.com/macros/s/AKfycbyBEBxtA64Uvj5KPhVX4OpyOVxpfZaWipfxycOMHO2RE3W3j9ZzazedjAWUAj5131Kw/exec';
+
+async function cloudSubmit(grade, teacher, scores, notes) {
+  if (!API_URL || API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'submit', grade, teacher, scores, notes })
+    });
+    showToast('已同步到雲端');
+  } catch (e) { showToast('雲端同步失敗，資料已存本機'); }
+}
+
+async function cloudLoad() {
+  if (!API_URL || API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+  try {
+    const res = await fetch(API_URL + '?t=' + Date.now());
+    const json = await res.json();
+    if (json.status === 'ok' && json.data) {
+      GRADES.forEach(g => {
+        if (!json.data[g]) return;
+        Object.keys(json.data[g]).forEach(t => {
+          if (!TEACHERS[g].includes(t)) return;
+          const remote = json.data[g][t];
+          aData[g][t] = remote.scores;
+          if (remote.notes) aNotes[g][t] = remote.notes;
+          if (remote.time) aTimestamps[g][t] = remote.time;
+        });
+      });
+      saveLS();
+      showToast('已從雲端載入資料');
+    }
+  } catch (e) { console.log('雲端載入失敗', e); }
+}
+
+async function syncCloud(){
+  showToast('同步中...');
+  await cloudLoad();
+  aEnsure();aRenderTT();aRenderInput();aRenderStats();
+}
+
 const TEACHERS={
   "一年級":["建能主任","玉芳老師","婕嫣老師"],
   "二年級":["詩博老師","秀雯老師","育霖老師"],
@@ -320,7 +365,8 @@ function tSubmit(){
   if(u>=0){showToast(`${u+1}班 尚有未評項目`);tCurClass=u;tRenderTabs();tRenderCard();return;}
   aClassCounts[tGrade]=tClassCount;if(!aData[tGrade])aData[tGrade]={};
   aData[tGrade][tTeacher]=JSON.parse(JSON.stringify(tScores));aNotes[tGrade][tTeacher]=[...tNotes];aTimestamps[tGrade][tTeacher]=new Date().toLocaleString('zh-TW');saveLS();
-  show('scrTeacherResult');document.getElementById('tResSub').innerHTML=`${tTeacher}｜${tGrade}<br><span style="font-size:12px;color:#e67e22">請將結果傳送給管理者 LINE: wanbadan3310</span>`;tRenderResult();
+  cloudSubmit(tGrade, tTeacher, tScores, tNotes);
+  show('scrTeacherResult');document.getElementById('tResSub').innerHTML=`${tTeacher}｜${tGrade}<br><span style="font-size:12px;color:#27ae60">評分已自動同步到雲端</span>`;tRenderResult();
 }
 function tRenderResult(){
   const tots=tScores.map((s,i)=>({cls:i+1,s,total:CRITERIA.reduce((sum,c)=>sum+s[c.key],0)}));
@@ -347,10 +393,11 @@ function aShareLine(){shareLine(aGetText());}
 function shareLine(text){const t=encodeURIComponent(text);const isM=/iPhone|iPad|Android/i.test(navigator.userAgent);if(isM){window.location.href='line://msg/text/'+t;}else{window.open('https://social-plugins.line.me/lineit/share?url=&text='+t,'_blank');}}
 
 // ===== 管理者 =====
-function initAdmin(){
+async function initAdmin(){
   aCurGrade=GRADES[0];aCurTeacher=0;
   const bar=document.getElementById('aGradeBar');bar.innerHTML='';
   GRADES.forEach(g=>{const b=document.createElement('button');b.className='ag-btn'+(g===aCurGrade?' on':'');b.textContent=g;b.onclick=()=>{aCurGrade=g;aCurTeacher=0;aRefresh();};bar.appendChild(b);});
+  await cloudLoad();
   aRefresh();
 }
 function aRefresh(){
